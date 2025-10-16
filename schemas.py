@@ -1,9 +1,22 @@
-from pydantic import BaseModel
+import re
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 class TodoBase(BaseModel):
-    task: str
+    task: str = Field(..., min_length=3, max_length=100, description="Task must be between 3 and 100 characters")
     status: bool = False
+
+    @field_validator('task')
+    def task_not_empty(cls, v):
+        if not v.strip():
+            raise ValueError('Task cannot be empty or whitespace')
+        return v.title()
+    
+    # Thêm custom validator trong schema cho task (regex: chỉ chữ/số, dùng pattern=r"^[a-zA-Z0-9 ]*$" trong Field).
+    def task_must_be_alphanumeric(cls, v):
+        if not re.match(r"^[a-zA-Z0-9 ]*$", v):
+            raise ValueError('Task must be alphanumeric')
+        return v
 
 class TodoCreate(TodoBase):
     pass  # Dùng cho POST (không ID)
