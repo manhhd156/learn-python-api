@@ -1,4 +1,6 @@
+import asyncio
 from datetime import timedelta
+import logging
 from fastapi import FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, List, Optional
@@ -9,17 +11,50 @@ from pydantic import BaseModel
 from auth import authenticate_user, create_access_token, get_current_user, get_current_user, get_password_hash
 import auth
 from database import engine, get_db
+from fastapi.middleware.cors import CORSMiddleware
 
 import models
+from routers import auth_router, todo_router
 from schemas import Todo, TodoCreate, TodoUpdate, TodoUpdate, Token, User, UserCreate  # Để type hint cho data echo
 from sqlalchemy.orm import Session
 from dependencies import get_db_session, check_admin_role, pagination_params
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+logging.basicConfig(level=logging.INFO)  # Logging setup
 
 app = FastAPI(
     title="My First Backend API",  # Tiêu đề hiển thị trong docs
     description="API cơ bản để học FastAPI - Ngày 1",
     version="1.0.0"
 )
+
+# CORS middleware (best practice cho frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Thay bằng domain thực tế
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(todo_router)
+app.include_router(auth_router)
+
+# Rate limiting đơn giản (middleware)
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    # Giả lập: Log và check (thực tế dùng slowapi)
+    logging.info(f"Request: {request.url}")
+    response = await call_next(request)
+    return response
+
+# Async route ví dụ
+@app.get("/async-test")
+async def async_test():
+    await asyncio.sleep(1)  # Giả lập async I/O
+    return {"message": "Async working"}
 
 @app.get("/")
 def home():

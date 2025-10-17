@@ -1,3 +1,9 @@
-fastapi
+fastapi[standard]
 uvicorn
-sqlalchemy
+sqlalchemy[asyncio]
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv
+pytest
+httpx
+aiosqlite  # Cho async SQLite
