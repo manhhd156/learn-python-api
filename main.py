@@ -1,13 +1,17 @@
+from datetime import timedelta
 from fastapi import FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, List, Optional
 from pydantic import Field
 
 from fastapi.params import Depends
 from pydantic import BaseModel
-from database import engine
+from auth import authenticate_user, create_access_token, get_current_user, get_current_user, get_password_hash
+import auth
+from database import engine, get_db
 
 import models
-from schemas import Todo, TodoCreate, TodoUpdate, TodoUpdate  # Để type hint cho data echo
+from schemas import Todo, TodoCreate, TodoUpdate, TodoUpdate, Token, User, UserCreate  # Để type hint cho data echo
 from sqlalchemy.orm import Session
 from dependencies import get_db_session, check_admin_role, pagination_params
 
@@ -84,7 +88,7 @@ def create_todo(items: List[TodoCreate], db: Session = Depends(get_db_session)):
 
 # Update todo by id
 @app.put("/edit-todo", response_model=Todo)
-def update_todo(param_item: TodoUpdate, db: Session = Depends(get_db_session)):
+def update_todo(param_item: TodoUpdate, db: Session = Depends(get_db_session), current_user: models.UserDB = Depends(get_current_user)):
     db_item = db.query(models.TodoDB).filter(models.TodoDB.id == param_item.id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Todo not found")
@@ -125,3 +129,31 @@ async def custom_validation_handler(request, exc):
         "error": str(exc),
         "status_code": 400
     }
+    
+
+
+# USERS
+@app.post("/register", response_model=User)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.UserDB).filter(models.UserDB.username == user.username).first()
+    
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_password = get_password_hash(user.password)
+    db_user = models.UserDB(username=user.username, email=user.email, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# LOGIN: Trả về token (xem trong auth.py)
+@app.post("/login", response_model=Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db:Session = Depends(get_db)):
+    user = authenticate_user(form_data.username, form_data.password, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}

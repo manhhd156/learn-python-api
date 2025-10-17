@@ -26,3 +26,7 @@ def pagination_params(skip: int = 0, limit: int = 10):
         raise HTTPException(status_code=400, detail="Skip must be non-negative")
     
     return {"skip": skip, "limit": limit}
+
+def get_current_user():
+    # Giả lập user hiện tại, sau này sẽ dùng auth để lấy user thật
+    return "current_user"

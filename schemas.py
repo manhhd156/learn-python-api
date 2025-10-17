@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 
 class TodoBase(BaseModel):
@@ -30,3 +30,25 @@ class Todo(TodoBase):
 
     class Config:
         orm_mode = True  # Cho phép convert từ DB object sang Pydantic
+        
+class UserBase(BaseModel):
+    username: str = Field(..., min_length=3)
+    email: EmailStr
+
+class UserCreate(UserBase):
+    password: str = Field(..., min_length=6)
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class User(UserBase):
+    id: int
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
