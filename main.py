@@ -10,11 +10,12 @@ from fastapi.params import Depends
 from pydantic import BaseModel
 from auth import authenticate_user, create_access_token, get_current_user, get_current_user, get_password_hash
 import auth
-from database import engine, get_db
+from database import engine, get_db, Base
 from fastapi.middleware.cors import CORSMiddleware
 
 import models
-from routers import auth_router, todo_router
+from routers.todo_router import router as todo_router
+from routers.auth_router import router as auth_router
 from schemas import Todo, TodoCreate, TodoUpdate, TodoUpdate, Token, User, UserCreate  # Để type hint cho data echo
 from sqlalchemy.orm import Session
 from dependencies import get_db_session, check_admin_role, pagination_params
@@ -29,6 +30,13 @@ app = FastAPI(
     description="API cơ bản để học FastAPI - Ngày 1",
     version="1.0.0"
 )
+
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 # CORS middleware (best practice cho frontend)
 app.add_middleware(

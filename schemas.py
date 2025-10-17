@@ -27,6 +27,7 @@ class TodoUpdate(TodoBase):
 
 class Todo(TodoBase):
     id: int  # ID từ DB
+    owner_id: int  # Giả lập user_id (sẽ dùng cho auth sau)
 
     class Config:
         orm_mode = True  # Cho phép convert từ DB object sang Pydantic
